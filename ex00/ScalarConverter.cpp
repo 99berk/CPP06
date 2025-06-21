@@ -3,8 +3,10 @@
 #include <string>
 #include <sstream>
 #include <limits>
+#include <iomanip>
 #include <cmath>
 #include <climits>
+#include <cstdlib>
 
 ScalarConverter::ScalarConverter() {}
 ScalarConverter::ScalarConverter(const ScalarConverter &other) { (void)other; }
@@ -23,9 +25,6 @@ static LiteralType detectType(const std::string &literal) {
 	if (literal.length() == 1 && !std::isdigit(literal[0]))
 		return TYPE_CHAR;
 	
-	if (literal.length() == 3 && literal[0] == '\'' && literal[2] == '\'')
-		return TYPE_CHAR;
-	
 	if (literal == "nanf" || literal == "+inff" || literal == "-inff")
 		return TYPE_FLOAT;
 	
@@ -40,6 +39,37 @@ static LiteralType detectType(const std::string &literal) {
 	
 	return TYPE_INT;
 }
+
+static int findPrecision(std::string input)
+{
+	int p = -1;
+	int size = static_cast<int>(input.size());
+	while (++p < size)
+		if (input[p] == '.')
+			break;
+
+	std::string sciNotation;
+	int pow = 0;
+	size_t e = input.find('e');
+	if (e == std::string::npos)
+		e = input.find('E');
+	if (e != std::string::npos)
+		sciNotation = input.substr(e + 1, size);
+	if (sciNotation.size() > 0)
+		pow = std::atoi(sciNotation.c_str());
+
+	if (input[size - 1] == 'f')
+		size = size -1;
+	if (p == size)
+		return 1;
+	if (e != std::string::npos )
+	{
+		if (pow >= size - (p + 1 + pow) - static_cast<int>(sciNotation.size() + 1))
+			return 1;
+		return size - (p + 1 + pow) - (sciNotation.size() + 1);
+	}
+	return size - (p + 1);
+ }
 
 static void printChar(double value) {
 	std::cout << "char: ";
@@ -71,6 +101,9 @@ static void printFloat(double value) {
 		else
 			std::cout << "-inff" << std::endl;
 	} else {
+		std::ostringstream input;
+		input << value;
+		std::cout << std::fixed << std::setprecision(findPrecision(input.str()));
 		float f = static_cast<float>(value);
 		std::cout << f;
 		if (f == static_cast<int>(f))
@@ -89,6 +122,9 @@ static void printDouble(double value) {
 		else
 			std::cout << "-inf" << std::endl;
 	} else {
+		std::ostringstream input;
+		input << value;
+		std::cout << std::fixed << std::setprecision(findPrecision(input.str()));
 		std::cout << value;
 		if (value == static_cast<int>(value))
 			std::cout << ".0";
@@ -149,10 +185,7 @@ void ScalarConverter::convert(const std::string &literal) {
 				throw std::exception();
 		}
 	} catch (...) {
-		std::cout << "char: impossible" << std::endl;
-		std::cout << "int: impossible" << std::endl;
-		std::cout << "float: impossible" << std::endl;
-		std::cout << "double: impossible" << std::endl;
+		std::cout << "It's illegal" << std::endl;
 		return;
 	}
 	
