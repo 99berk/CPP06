@@ -1,10 +1,10 @@
-NAME = convert
+NAME = identify
 
 CXX = c++
 
 CPPFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRC = ScalarConverter.cpp main.cpp 
+SRC = Base.cpp main.cpp 
 
 OBJ = $(SRC:.cpp=.o)
 
