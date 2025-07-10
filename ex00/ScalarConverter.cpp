@@ -86,36 +86,11 @@ static int isFloat(std::string input)
 			return -1;
 	}
 
-    if (hasPoint)
-    {
-        size_t dotPos = input.find('.');
-        size_t endPos = input.size();
-
-        if (hasF)
-            endPos--;
-
-        size_t decimalLength = endPos - dotPos - 1;
-
-        std::string decimalPart = input.substr(dotPos + 1, decimalLength);
-
-        while (!decimalPart.empty() && decimalPart[decimalPart.size() - 1] == '0')
-            decimalPart.erase(decimalPart.size() - 1);
-
-        size_t meaningfulDecimals = decimalPart.length();
-
-        if (meaningfulDecimals > 6)
-            return false;
-    }
-
 	double number = std::strtod(input.c_str(), NULL);
-	if (-std::numeric_limits<float>::max() > number
+
+	if (!hasF || -std::numeric_limits<float>::max() > number
 		|| std::numeric_limits<float>::max() < number)
 		return false;
-	// float toFloat = static_cast<float>(number);
-	// double roundTrip = static_cast<double>(toFloat);
-	// double tolerance = std::numeric_limits<float>::epsilon() * std::abs(number);
-	// if (std::abs(roundTrip - number) > tolerance)
-	// 	return false;
 	return 3;
 }
 
@@ -225,7 +200,7 @@ static int findPrecision(std::string input)
 static void printFloat(std::string input)
 {
 	char* end;
-	float f = std::strtod(input.c_str(), &end);
+	float f = static_cast<float>(std::strtod(input.c_str(), &end));
 	if (f < 128 && f >= 0)
 	{
 		char c = static_cast<char>(f);
@@ -245,13 +220,12 @@ static void printFloat(std::string input)
 		std::cout << "int: " << "impossible" << std::endl;
 	std::cout << std::fixed << std::setprecision(findPrecision(input));
 	std::cout << "float: " << f << "f" << std::endl;
-	double d = static_cast<double>(f);
+	double d = std::strtod(input.c_str(), &end);
 	std::cout << "double: " << d << std::endl;
 }
 
 static void printDouble(std::string input)
 {
-	std::cout << "DOUBLE->" << std::endl;
 	char* end;
 	double d = std::strtod(input.c_str(), &end);
 	if (d < 128 && d >= 0)
@@ -272,7 +246,10 @@ static void printDouble(std::string input)
 	else
 		std::cout << "int: " << "impossible" << std::endl;
 	float f = static_cast<float>(d);
-	(f == 0) ? std::cout << std::fixed << std::setprecision(1) : std::cout << std::fixed << std::setprecision(findPrecision(input));
+	if (f == 0)
+		std::cout << std::fixed << std::setprecision(1);
+	else
+		std::cout << std::fixed << std::setprecision(findPrecision(input));
 	std::cout << "float: " << f << "f" << std::endl;
 	std::cout << std::fixed << std::setprecision(findPrecision(input));
 	std::cout << "double: " << d << std::endl;
