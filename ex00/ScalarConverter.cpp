@@ -37,37 +37,6 @@ static int isChar(std::string input)
 	return false;
 }
 
-static int findPrecision(std::string input)
-{
-	int p = -1;
-	int size = static_cast<int>(input.size());
-	while (++p < size)
-		if (input[p] == '.')
-			break;
-
-	std::string sciNotation;
-	int pow = 0;
-	size_t e = input.find('e');
-	if (e == std::string::npos)
-		e = input.find('E');
-	if (e != std::string::npos)
-		sciNotation = input.substr(e + 1, size);
-	if (sciNotation.size() > 0)
-		pow = std::atoi(sciNotation.c_str());
-
-	if (input[size - 1] == 'f')
-		size = size -1;
-	if (p == size)
-		return 1;
-	if (e != std::string::npos )
-	{
-		if (pow >= size - (p + 1 + pow) - static_cast<int>(sciNotation.size() + 1))
-			return 1;
-		return size - (p + 1 + pow) - (sciNotation.size() + 1);
-	}
-	return size - (p + 1);
- }
-
 static int isInt(std::string input)
 {
 	int hasSign = 0;
@@ -90,10 +59,9 @@ static int isInt(std::string input)
 
 static int isFloat(std::string input)
 {
-	int hasE = 0;
+	int hasSign = 0;
 	int hasF = 0;
 	int hasPoint = 0;
-	int hasSign = 0;
 
 	for (size_t i = 0; i < input.size(); i++)
 	{
@@ -107,13 +75,6 @@ static int isFloat(std::string input)
 			hasF = 1;
 			continue;
 		}
-		if ((input[i] == 'e' || input[i] == 'E') && !hasE)
-		{
-			hasE = 1;
-			if (i + 1 < input.size() && (input[i + 1] == '+' || input[i + 1] == '-'))
-				i++;
-			continue;
-		}
 		if (i + 1 < input.size() && input[i] == '.' && std::isdigit(input[i + 1]) && !hasPoint)
 		{
 			if (i == 0 || input[i + 1] == '\0')
@@ -125,21 +86,41 @@ static int isFloat(std::string input)
 			return -1;
 	}
 
+    if (hasPoint)
+    {
+        size_t dotPos = input.find('.');
+        size_t endPos = input.size();
+
+        if (hasF)
+            endPos--;
+
+        size_t decimalLength = endPos - dotPos - 1;
+
+        std::string decimalPart = input.substr(dotPos + 1, decimalLength);
+
+        while (!decimalPart.empty() && decimalPart[decimalPart.size() - 1] == '0')
+            decimalPart.erase(decimalPart.size() - 1);
+
+        size_t meaningfulDecimals = decimalPart.length();
+
+        if (meaningfulDecimals > 6)
+            return false;
+    }
+
 	double number = std::strtod(input.c_str(), NULL);
 	if (-std::numeric_limits<float>::max() > number
 		|| std::numeric_limits<float>::max() < number)
 		return false;
-	float toFloat = static_cast<float>(number);
-	double roundTrip = static_cast<double>(toFloat);
-	double tolerance = std::numeric_limits<float>::epsilon() * std::abs(number);
-	if (std::abs(roundTrip - number) > tolerance)
-		return false;
+	// float toFloat = static_cast<float>(number);
+	// double roundTrip = static_cast<double>(toFloat);
+	// double tolerance = std::numeric_limits<float>::epsilon() * std::abs(number);
+	// if (std::abs(roundTrip - number) > tolerance)
+	// 	return false;
 	return 3;
 }
 
 static int isDouble(std::string input)
 {
-	int hasE = 0;
 	int hasF = 0;
 	int hasPoint = 0;
 	int hasSign = 0;
@@ -154,13 +135,6 @@ static int isDouble(std::string input)
 		if ((input[i] == 'f' || input[i] == 'F') && !hasF)
 		{
 			hasF = 1;
-			continue;
-		}
-		if ((input[i] == 'e' || input[i] == 'E') && !hasE)
-		{
-			hasE = 1;
-			if (i + 1 < input.size() && (input[i + 1] == '+' || input[i + 1] == '-'))
-				i++;
 			continue;
 		}
 		if (input[i] == '.' && !hasPoint)
@@ -195,7 +169,6 @@ static int detectType(std::string input)
 		if (ret != false)
 			return ret;
 	}
-
 	return 0;
 }
 
@@ -210,12 +183,11 @@ static void printChar(std::string input)
 	std::cout << "float: " << f << "f" << std::endl;
 	double d = static_cast<double>(c);
 	std::cout << "double: " << d << std::endl;
-
 }
 
 static void printInt(std::string input)
 {
-	int i = std::strtod(input.c_str(), NULL);
+	int i = static_cast<int>(std::strtod(input.c_str(), NULL));
 	if (i < 128 && i >= 0)
 	{
 		char c = static_cast<char>(i);
@@ -233,21 +205,34 @@ static void printInt(std::string input)
 	std::cout << "float: " << f << "f" << std::endl;
 	double d = static_cast<double>(i);
 	std::cout << "double: " << d << std::endl;
-
 }
+
+static int findPrecision(std::string input)
+{
+	int p = -1;
+	int size = static_cast<int>(input.size());
+	while (++p < size)
+		if (input[p] == '.')
+			break;
+
+	if (input[size - 1] == 'f')
+		size = size - 1;
+	if (p == size)
+		return 1;
+	return size - (p + 1);
+ }
 
 static void printFloat(std::string input)
 {
-
 	char* end;
 	float f = std::strtod(input.c_str(), &end);
 	if (f < 128 && f >= 0)
 	{
 		char c = static_cast<char>(f);
 		if (std::isprint(c))
-		std::cout << "char: '" << c << "'" << std::endl;
+			std::cout << "char: '" << c << "'" << std::endl;
 		else
-		std::cout << "char: " << "Non displayable" << std::endl;
+			std::cout << "char: " << "Non displayable" << std::endl;
 	}
 	else
 		std::cout << "char: " << "impossible" << std::endl;
@@ -262,19 +247,20 @@ static void printFloat(std::string input)
 	std::cout << "float: " << f << "f" << std::endl;
 	double d = static_cast<double>(f);
 	std::cout << "double: " << d << std::endl;
-
 }
+
 static void printDouble(std::string input)
 {
+	std::cout << "DOUBLE->" << std::endl;
 	char* end;
 	double d = std::strtod(input.c_str(), &end);
 	if (d < 128 && d >= 0)
 	{
 		char c = static_cast<char>(d);
 		if (std::isprint(c))
-		std::cout << "char: '" << c << "'" << std::endl;
+			std::cout << "char: '" << c << "'" << std::endl;
 		else
-		std::cout << "char: " << "Non displayable" << std::endl;
+			std::cout << "char: " << "Non displayable" << std::endl;
 	}
 	else
 		std::cout << "char: " << "impossible" << std::endl;
@@ -290,7 +276,6 @@ static void printDouble(std::string input)
 	std::cout << "float: " << f << "f" << std::endl;
 	std::cout << std::fixed << std::setprecision(findPrecision(input));
 	std::cout << "double: " << d << std::endl;
-
 }
 
 void ScalarConverter::convert(std::string input)
